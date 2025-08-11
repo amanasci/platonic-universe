@@ -1,4 +1,4 @@
-from sklearn.neighbours import NearestNeighbors
+from sklearn.neighbors import NearestNeighbors
 import numpy as np
 from PIL import Image
 

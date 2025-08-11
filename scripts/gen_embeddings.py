@@ -26,35 +26,35 @@ def data_transforms():
     return transforms.Compose([transforms.Lambda(normalise_for_astropt)])
 
 
-def _process_galaxy_wrapper(idx, func, mode0, mode1):
+def _process_galaxy_wrapper(idx, func, modes):
     """This function ensures that the image is tokenised in the same way as the
     pre-trained model is expecting"""
-    mode0_im = np.array(flux_to_pil(idx[f"{mode0}_image"])).swapaxes(0, 2)
+    mode0_im = np.array(flux_to_pil(idx[f"{modes[0]}_image"])).swapaxes(0, 2)
     mode0_im = func(torch.from_numpy(mode0_im).to(torch.float)).to(torch.float)
     mode0_positions = torch.arange(0, len(mode0_im), dtype=torch.long)
-    mode1_im = np.array(flux_to_pil(idx[f"{mode1}_image"])).swapaxes(0, 2)
+    mode1_im = np.array(flux_to_pil(idx[f"{modes[1]}_image"])).swapaxes(0, 2)
     mode1_im = func(torch.from_numpy(mode1_im).to(torch.float)).to(torch.float)
     mode1_positions = torch.arange(0, len(mode1_im), dtype=torch.long)
     return {
-        f"{mode0}_images": mode0_im,
-        f"{mode0}_positions": mode0_positions,
-        f"{mode1}_images": mode1_im,
-        f"{mode1}_positions": mode1_positions,
+        f"{modes[0]}_images": mode0_im,
+        f"{modes[0]}_positions": mode0_positions,
+        f"{modes[1]}_images": mode1_im,
+        f"{modes[1]}_positions": mode1_positions,
     }
 
 
 def main():
     parser = argparse.ArgumentParser(description="Generate embeddings for astronomy")
     parser.add_argument("--mode0", default="hsc", help="First modality name")
-    parser.add_argument("--mode1", default="legacysurvey", help="Second modality name")
+    parser.add_argument("--mode1", default="jwst", help="Second modality name")
     parser.add_argument(
         "--input-dataset",
-        default="Smith42/legacysurvey_hsc_crossmatched",
+        default="Smith42/jwst_hsc_crossmatched",
         help="Input HuggingFace dataset",
     )
     parser.add_argument(
         "--output-dataset",
-        default="UniverseTBD/legacysurvey_hsc_embeddings",
+        default="UniverseTBD/jwst_hsc_embeddings",
         help="Output HuggingFace dataset",
     )
     parser.add_argument(
