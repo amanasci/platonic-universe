@@ -81,6 +81,7 @@ def main():
     df = pl.DataFrame()
     for size in ["015M", "095M", "850M"]:
         model = load_astropt("Smith42/astroPT_v2.0", path=f"astropt/{size}").to("cuda")
+        model.eval()
         processor = PreprocessAstropt(model.modality_registry, modes)
 
         ds = (
@@ -93,13 +94,14 @@ def main():
         dl = iter(DataLoader(ds, batch_size=batch_size, num_workers=32))
 
         zs = {mode: [] for mode in modes} 
-        for B in tqdm(dl):
-            for mode in modes:
-                inputs = {
-                    "images": B[f"{mode}_images"].to("cuda"),
-                    "images_positions": B[f"{mode}_positions"].to("cuda")
-                }
-                zs[mode].append(model.generate_embeddings(inputs)["images"].detach())
+        with torch.no_grad():
+            for B in tqdm(dl):
+                for mode in modes:
+                    inputs = {
+                        "images": B[f"{mode}_images"].to("cuda"),
+                        "images_positions": B[f"{mode}_positions"].to("cuda")
+                    }
+                    zs[mode].append(model.generate_embeddings(inputs)["images"].detach())
 
         zs = {mode: torch.cat(embs) for mode, embs in zs.items()}
         mknn_score = mknn(zs[modes[0]].cpu().numpy(), zs[modes[1]].cpu().numpy(), args.knn_k)
