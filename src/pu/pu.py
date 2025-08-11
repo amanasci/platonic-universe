@@ -37,4 +37,4 @@ def flux_to_pil(blob):
     img = img.astype(np.uint8)
     if img.ndim == 2:
         img = np.repeat(img[:, :, None], 3, axis=2)
-    return Image.fromarray(img, "RGB")
+    return Image.fromarray(img)
