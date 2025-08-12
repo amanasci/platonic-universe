@@ -3,51 +3,16 @@ import argparse
 import numpy as np
 import polars as pl
 import torch
-from astropt.local_datasets import GalaxyImageDataset
 from astropt.model_utils import load_astropt
 from datasets import Dataset, load_dataset
 from PIL import ImageFile
 from torch.utils.data import DataLoader
-from torchvision import transforms
 from tqdm import tqdm
 
-from pu.pu import flux_to_pil, mknn
+from pu.preprocess import PreprocessAstropt
+from pu.pu import mknn
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-
-class PreprocessAstropt:
-    """Preprocessor that converts galaxy images to the format expected by AstroPT models"""
-
-    @staticmethod
-    def normalise_for_astropt(x):
-        std, mean = torch.std_mean(x, dim=1, keepdim=True)
-        return (x - mean) / (std + 1e-8)
-
-    @classmethod
-    def data_transforms(cls):
-        return transforms.Compose([transforms.Lambda(cls.normalise_for_astropt)])
-
-    def __init__(self, modality_registry, modes):
-        self.galproc = GalaxyImageDataset(
-            None,
-            spiral=True,
-            transform={"images": self.data_transforms()},
-            modality_registry=modality_registry,
-        )
-        self.modes = modes
-
-    def __call__(self, idx):
-        result = {}
-        for mode in self.modes:
-            im = flux_to_pil(idx[f"{mode}_image"], mode).swapaxes(0, 2)
-            im = self.galproc.process_galaxy(torch.from_numpy(im).to(torch.float)).to(
-                torch.float
-            )
-            result[f"{mode}_images"] = im
-            result[f"{mode}_positions"] = torch.arange(0, len(im), dtype=torch.long)
-
-        return result
 
 
 def main():
@@ -83,12 +48,15 @@ def main():
     batch_size = args.batch_size
 
     def filterfun(idx):
-        im = idx["jwst_image"]["flux"][3]
-        v0, v1 = np.nanpercentile(im, 5), np.nanpercentile(im, 99)
-        if v0 - v1 == 0:
-            return False
-        else:
+        if "jwst" not in modes:
             return True
+        else:
+            im = idx["jwst_image"]["flux"][3]
+            v0, v1 = np.nanpercentile(im, 5), np.nanpercentile(im, 99)
+            if v0 - v1 == 0:
+                return False
+            else:
+                return True
 
     df = pl.DataFrame()
     for size in ["015M", "095M", "850M"]:

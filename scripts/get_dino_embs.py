@@ -9,27 +9,10 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AutoImageProcessor, AutoModel
 
-from pu.pu import flux_to_pil, mknn
+from pu.preprocess import PreprocessHF
+from pu.pu import mknn
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-
-class PreprocessDino:
-    """Preprocessor that converts galaxy images to the format expected by Dino models"""
-
-    def __init__(self, modes, autoproc):
-        self.modes = modes
-        self.autoproc = autoproc
-
-    def __call__(self, idx):
-        result = {}
-        for mode in self.modes:
-            im = flux_to_pil(idx[f"{mode}_image"], mode)
-            result[f"{mode}"] = self.autoproc(im, return_tensors="pt")[
-                "pixel_values"
-            ].squeeze()
-
-        return result
 
 
 def main():
@@ -65,21 +48,22 @@ def main():
     batch_size = args.batch_size
 
     def filterfun(idx):
-        im = idx["jwst_image"]["flux"][3]
-        v0, v1 = np.nanpercentile(im, 5), np.nanpercentile(im, 99)
-        if v0 - v1 == 0:
-            return False
-        else:
+        if "jwst" not in modes:
             return True
+        else:
+            im = idx["jwst_image"]["flux"][3]
+            v0, v1 = np.nanpercentile(im, 5), np.nanpercentile(im, 99)
+            if v0 - v1 == 0:
+                return False
+            else:
+                return True
 
     df = pl.DataFrame()
     for size in ["small", "base", "large", "giant"]:
         model_name = f"facebook/dinov2-{size}"
         model = AutoModel.from_pretrained(model_name).to("cuda")
         model.eval()
-        processor = PreprocessDino(
-            modes, AutoImageProcessor.from_pretrained(model_name)
-        )
+        processor = PreprocessHF(modes, AutoImageProcessor.from_pretrained(model_name))
 
         ds = (
             load_dataset(hf_ds, split="train", streaming=True)
@@ -116,8 +100,6 @@ def main():
                 for mode, embs in zs.items()
             ]
         )
-
-    print(df)
     if upload_ds is not None:
         Dataset.from_polars(df).push_to_hub(upload_ds)
 

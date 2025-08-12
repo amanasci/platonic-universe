@@ -55,7 +55,7 @@ def find_center_blob_info(mask):
     return center_blob_size, extent
 
 
-def resize_galaxy_to_fit(img, padding_ratio=0.1, target_size=96):
+def resize_galaxy_to_fit(img, padding_ratio=0.1, target_size=96, force_extent=None):
     """
     Estimate galaxy size and resize centered galaxy to 96x96
 
@@ -63,6 +63,8 @@ def resize_galaxy_to_fit(img, padding_ratio=0.1, target_size=96):
         img: Grayscale numpy array (2D), galaxy assumed to be centered
         padding_ratio: Ratio of padding around the galaxy (0.1 = 10% padding)
         target_size: Output size (default 96x96)
+        force_extent: Force clip to these boundaries
+            (min_row, max_row, min_col, max_col = force_extent)
 
     Returns:
         resized_img: Galaxy resized to target_size x target_size
@@ -71,14 +73,20 @@ def resize_galaxy_to_fit(img, padding_ratio=0.1, target_size=96):
     # Get binary mask using Otsu's method
     mask, threshold = otsu_threshold(img)
 
-    # Count only the contiguous blob at the center
-    galaxy_size, extent = find_center_blob_info(mask)
+    if force_extent is None:
+        # Count only the contiguous blob at the center
+        galaxy_size, extent = find_center_blob_info(mask)
 
-    if galaxy_size == 0 or extent is None:
-        return img[
-            img.shape[0] // 2 - target_size // 2 : img.shape[0] // 2 + target_size // 2,
-            img.shape[1] // 2 - target_size // 2 : img.shape[1] // 2 + target_size // 2,
-        ], 0
+        if galaxy_size == 0 or extent is None:
+            return img[
+                img.shape[0] // 2 - target_size // 2 : img.shape[0] // 2
+                + target_size // 2,
+                img.shape[1] // 2 - target_size // 2 : img.shape[1] // 2
+                + target_size // 2,
+            ]
+    else:
+        galaxy_size = 0
+        extent = force_extent
 
     min_row, max_row, min_col, max_col = extent
 
@@ -98,6 +106,12 @@ def resize_galaxy_to_fit(img, padding_ratio=0.1, target_size=96):
     galaxy_crop = img[start_row:end_row, start_col:end_col]
 
     max_dim = max(galaxy_crop.shape[0], galaxy_crop.shape[1])
+    if max_dim <= 0:
+        # catch zero division error
+        return img[
+            img.shape[0] // 2 - target_size // 2 : img.shape[0] // 2 + target_size // 2,
+            img.shape[1] // 2 - target_size // 2 : img.shape[1] // 2 + target_size // 2,
+        ], 0
 
     # Resize to target size (96x96)
     if len(galaxy_crop.shape) == 3:
@@ -109,7 +123,7 @@ def resize_galaxy_to_fit(img, padding_ratio=0.1, target_size=96):
         zoom_factor = target_size / max_dim
         resized = zoom(galaxy_crop, zoom_factor, order=1)
 
-    return resized, galaxy_size
+    return resized
 
 
 # Example usage
