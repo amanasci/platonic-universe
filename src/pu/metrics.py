@@ -1,8 +1,6 @@
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
-from pu.zoom import resize_galaxy_to_fit
-
 
 def mknn(Z1, Z2, k=10):
     """
