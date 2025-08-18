@@ -15,15 +15,11 @@ class PreprocessHF:
         self,
         modes,
         autoproc,
-        singlechannel=True,
         resize=False,
-        normtype="percentile",
     ):
         self.modes = modes
         self.autoproc = autoproc
-        self.f2p = partial(
-            flux_to_pil, singlechannel=singlechannel, resize=resize, normtype=normtype
-        )
+        self.f2p = partial(flux_to_pil, resize=resize)
 
     def __call__(self, idx):
         result = {}
@@ -57,9 +53,7 @@ class PreprocessAstropt:
         self,
         modality_registry,
         modes,
-        singlechannel=True,
         resize=False,
-        normtype="percentile",
     ):
         self.galproc = GalaxyImageDataset(
             None,
@@ -68,9 +62,7 @@ class PreprocessAstropt:
             modality_registry=modality_registry,
         )
         self.modes = modes
-        self.f2p = partial(
-            flux_to_pil, singlechannel=singlechannel, resize=resize, normtype=normtype
-        )
+        self.f2p = partial(flux_to_pil, resize=resize)
 
     def __call__(self, idx):
         result = {}
@@ -90,67 +82,104 @@ class PreprocessAstropt:
         return result
 
 
-def flux_to_pil(
-    blob, mode, modes, singlechannel=True, resize=False, normtype="percentile"
-):
+def flux_to_pil(blob, mode, modes, resize=False, percentile_norm=True):
     """
     Convert raw fluxes to PIL imagery
     """
 
-    def _norm(chan, normtype="arcsinh"):
-        if normtype == "arcsinh":
+    def _norm(chan, percentiles=None):
+        if percentiles is not None:
+            # if percentiles are present norm by them
+            v0, v1 = percentiles
+            chan = ((chan - v0) / (v1 - v0)).clip(0, 1)
+        else:
+            # else assume we norm per image
             scale = np.percentile(chan, 99) - np.percentile(chan, 1)
             chan = np.arcsinh((chan - np.percentile(chan, 1)) / scale)
             chan = (chan - chan.min()) / (chan.max() - chan.min())
-        elif normtype == "percentile":
-            v0, v1 = np.nanpercentile(chan, 5), np.nanpercentile(chan, 99)
-            chan = ((chan - v0) / (v1 - v0)).clip(0, 1)
-        else:
-            raise NotImplementedError(
-                "normtype must be one of 'arcsinh' or 'percentile'"
-            )
         return chan
 
     arr = np.asarray(blob["flux"], np.float32)
     if mode == "hsc":
-        if singlechannel:
-            arr = np.stack([arr[2], arr[2], arr[2]], axis=-1)  # iii
-        elif arr.ndim == 3:
+        if arr.ndim == 3:
             arr = np.stack([arr[0], arr[1], arr[3]], axis=-1)  # grz
         elif arr.ndim == 2:
             arr = np.stack([arr, arr, arr], axis=-1)
         else:
             raise ValueError(f"Array shape {arr.shape} for {mode} not recognised")
+
         if (("jwst" in modes) or ("desi" in modes) or ("sdss" in modes)) and resize:
             # if comparing hsc to jwst resize hsc so it matches hsc
             arr = resize_galaxy_to_fit(
                 arr, force_extent=(68, 92, 68, 92), target_size=96
             )
+
+        if percentile_norm:
+            norm_consts = {
+                "g": (-0.00847, 0.238),
+                "r": (-0.0129, 0.480),
+                "z": (-0.0291, 1.02),
+            }
+            arr = np.stack(
+                [
+                    _norm(arr[..., -1], norm_consts[band])
+                    for ii, band in enumerate(("g", "r", "z"))
+                ],
+                axis=-1,
+            )
+
     if mode == "jwst":  # 0.04 pixel per arcsec
-        if singlechannel:
-            arr = np.stack([arr[3], arr[3], arr[3]], axis=-1)  # centre bands
-        elif arr.ndim == 3:
-            arr = np.stack([arr[1], arr[3], arr[6]], axis=-1)
+        if arr.ndim == 3:
+            arr = np.stack([arr[0], arr[4], arr[6]], axis=-1)
         elif arr.ndim == 2:
             arr = np.stack([arr, arr, arr], axis=-1)
         else:
             raise ValueError(f"Array shape {arr.shape} for {mode} not recognised")
+
+        if percentile_norm:
+            norm_consts = {
+                "f090w": (-0.0741, 2.38),
+                "f277w": (-0.0183, 5.76),
+                "f444w": (-0.0309, 4.06),
+            }
+            arr = np.stack(
+                [
+                    _norm(arr[..., -1], norm_consts[band])
+                    for ii, band in enumerate(("f090w", "f277w", "f444w"))
+                ],
+                axis=-1,
+            )
+
     if mode == "legacysurvey":
-        if singlechannel:
-            arr = np.stack([arr[2], arr[2], arr[2]], axis=-1)  # iii
-        elif arr.ndim == 3:
+        if arr.ndim == 3:
             arr = np.stack([arr[0], arr[1], arr[3]], axis=-1)  # grz
         elif arr.ndim == 2:
             arr = np.stack([arr, arr, arr], axis=-1)
         else:
             raise ValueError(f"Array shape {arr.shape} for {mode} not recognised")
+
         if resize:
             # we always resize legacy to match hsc for our use-case
             arr = resize_galaxy_to_fit(
                 arr, force_extent=(36, 124, 36, 124), target_size=160
             )
 
-    arr = _norm(arr)
+        if percentile_norm:
+            norm_consts = {
+                "g": (-0.00216, 0.000766),
+                "r": (-0.00317, 0.0173),
+                "z": (-0.00843, 0.0350),
+            }
+            arr = np.stack(
+                [
+                    _norm(arr[..., -1], norm_consts[band])
+                    for ii, band in enumerate(("g", "r", "z"))
+                ],
+                axis=-1,
+            )
+
+    if not percentile_norm:
+        arr = _norm(arr)
     arr = (arr * 255).astype(np.uint8)
 
     return arr
