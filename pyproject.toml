@@ -29,5 +29,8 @@ ignore = ["E501"]
 [tool.uv]
 package = true
 
+[tool.uv.sources]
+transformers = { git = "https://github.com/huggingface/transformers.git" }
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/pu"]
