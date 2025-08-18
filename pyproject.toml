@@ -9,10 +9,13 @@ dependencies = [
     "astropt>=2.0.5",
     "llvmlite>=0.44.0",
     "numpy>=2.3.2",
+    "opencv-python>=4.11.0.86",
     "pillow>=11.3.0",
     "polars>=1.32.2",
+    "scikit-image>=0.25.2",
     "scikit-learn>=1.7.1",
     "torch>=2.8.0",
+    "transformers>=4.55.0",
 ]
 
 [build-system]  

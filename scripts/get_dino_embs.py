@@ -3,13 +3,13 @@ import argparse
 import numpy as np
 import polars as pl
 import torch
-from astropt.model_utils import load_astropt
 from datasets import Dataset, load_dataset
 from PIL import ImageFile
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from transformers import AutoImageProcessor, AutoModel
 
-from pu.preprocess import PreprocessAstropt
+from pu.preprocess import PreprocessHF
 from pu.pu import mknn
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -59,10 +59,11 @@ def main():
                 return True
 
     df = pl.DataFrame()
-    for size in ["015M", "095M", "850M"]:
-        model = load_astropt("Smith42/astroPT_v2.0", path=f"astropt/{size}").to("cuda")
+    for size in ["small", "base", "large", "giant"]:
+        model_name = f"facebook/dinov2-{size}"
+        model = AutoModel.from_pretrained(model_name).to("cuda")
         model.eval()
-        processor = PreprocessAstropt(model.modality_registry, modes)
+        processor = PreprocessHF(modes, AutoImageProcessor.from_pretrained(model_name))
 
         ds = (
             load_dataset(hf_ds, split="train", streaming=True)
@@ -78,12 +79,9 @@ def main():
         with torch.no_grad():
             for B in tqdm(dl):
                 for mode in modes:
-                    inputs = {
-                        "images": B[f"{mode}_images"].to("cuda"),
-                        "images_positions": B[f"{mode}_positions"].to("cuda"),
-                    }
+                    inputs = B[f"{mode}"].to("cuda")
                     zs[mode].append(
-                        model.generate_embeddings(inputs)["images"].detach()
+                        model(inputs).last_hidden_state.mean(dim=1).detach()
                     )
 
         zs = {mode: torch.cat(embs) for mode, embs in zs.items()}
@@ -102,8 +100,6 @@ def main():
                 for mode, embs in zs.items()
             ]
         )
-
-    print(df)
     if upload_ds is not None:
         Dataset.from_polars(df).push_to_hub(upload_ds)
 

@@ -1,0 +1,156 @@
+from functools import partial
+
+import numpy as np
+import torch
+from astropt.local_datasets import GalaxyImageDataset
+from torchvision import transforms
+
+from pu.zoom import resize_galaxy_to_fit
+
+
+class PreprocessHF:
+    """Preprocessor that converts galaxy images to the format expected by Dino and ViT models"""
+
+    def __init__(
+        self,
+        modes,
+        autoproc,
+        singlechannel=True,
+        resize=False,
+        normtype="percentile",
+    ):
+        self.modes = modes
+        self.autoproc = autoproc
+        self.f2p = partial(
+            flux_to_pil, singlechannel=singlechannel, resize=resize, normtype=normtype
+        )
+
+    def __call__(self, idx):
+        result = {}
+        for mode in self.modes:
+            if (mode != "desi") and (mode != "sdss"):
+                try:
+                    im = flux_to_pil(idx[f"{mode}_image"], mode, self.modes)
+                except KeyError:
+                    # Assume the dataset does not name the images by modality
+                    im = self.f2p(idx["image"], mode, self.modes)
+                result[f"{mode}"] = self.autoproc(im, return_tensors="pt")[
+                    "pixel_values"
+                ].squeeze()
+
+        return result
+
+
+class PreprocessAstropt:
+    """Preprocessor that converts galaxy images to the format expected by AstroPT models"""
+
+    @staticmethod
+    def normalise_for_astropt(x):
+        std, mean = torch.std_mean(x, dim=1, keepdim=True)
+        return (x - mean) / (std + 1e-8)
+
+    @classmethod
+    def data_transforms(cls):
+        return transforms.Compose([transforms.Lambda(cls.normalise_for_astropt)])
+
+    def __init__(
+        self,
+        modality_registry,
+        modes,
+        singlechannel=True,
+        resize=False,
+        normtype="percentile",
+    ):
+        self.galproc = GalaxyImageDataset(
+            None,
+            spiral=True,
+            transform={"images": self.data_transforms()},
+            modality_registry=modality_registry,
+        )
+        self.modes = modes
+        self.f2p = partial(
+            flux_to_pil, singlechannel=singlechannel, resize=resize, normtype=normtype
+        )
+
+    def __call__(self, idx):
+        result = {}
+        for mode in self.modes:
+            if (mode != "desi") and (mode != "sdss"):
+                try:
+                    im = self.f2p(idx[f"{mode}_image"], mode, self.modes).swapaxes(0, 2)
+                except KeyError:
+                    # Assume the dataset does not name the images by modality
+                    im = flux_to_pil(idx["image"], mode, self.modes).swapaxes(0, 2)
+                im = self.galproc.process_galaxy(
+                    torch.from_numpy(im).to(torch.float)
+                ).to(torch.float)
+                result[f"{mode}_images"] = im
+                result[f"{mode}_positions"] = torch.arange(0, len(im), dtype=torch.long)
+
+        return result
+
+
+def flux_to_pil(
+    blob, mode, modes, singlechannel=True, resize=False, normtype="percentile"
+):
+    """
+    Convert raw fluxes to PIL imagery
+    """
+
+    def _norm(chan, normtype="arcsinh"):
+        if normtype == "arcsinh":
+            scale = np.percentile(chan, 99) - np.percentile(chan, 1)
+            chan = np.arcsinh((chan - np.percentile(chan, 1)) / scale)
+            chan = (chan - chan.min()) / (chan.max() - chan.min())
+        elif normtype == "percentile":
+            v0, v1 = np.nanpercentile(chan, 5), np.nanpercentile(chan, 99)
+            chan = ((chan - v0) / (v1 - v0)).clip(0, 1)
+        else:
+            raise NotImplementedError(
+                "normtype must be one of 'arcsinh' or 'percentile'"
+            )
+        return chan
+
+    arr = np.asarray(blob["flux"], np.float32)
+    if mode == "hsc":
+        if singlechannel:
+            arr = np.stack([arr[2], arr[2], arr[2]], axis=-1)  # iii
+        elif arr.ndim == 3:
+            arr = np.stack([arr[0], arr[1], arr[3]], axis=-1)  # grz
+        elif arr.ndim == 2:
+            arr = np.stack([arr, arr, arr], axis=-1)
+        else:
+            raise ValueError(f"Array shape {arr.shape} for {mode} not recognised")
+        if (("jwst" in modes) or ("desi" in modes) or ("sdss" in modes)) and resize:
+            # if comparing hsc to jwst resize hsc so it matches hsc
+            arr = resize_galaxy_to_fit(
+                arr, force_extent=(68, 92, 68, 92), target_size=96
+            )
+    if mode == "jwst":  # 0.04 pixel per arcsec
+        if singlechannel:
+            arr = np.stack([arr[3], arr[3], arr[3]], axis=-1)  # centre bands
+        elif arr.ndim == 3:
+            arr = np.stack([arr[1], arr[3], arr[6]], axis=-1)
+        elif arr.ndim == 2:
+            arr = np.stack([arr, arr, arr], axis=-1)
+        else:
+            raise ValueError(f"Array shape {arr.shape} for {mode} not recognised")
+    if mode == "legacysurvey":
+        if singlechannel:
+            arr = np.stack([arr[2], arr[2], arr[2]], axis=-1)  # iii
+        elif arr.ndim == 3:
+            arr = np.stack([arr[0], arr[1], arr[3]], axis=-1)  # grz
+        elif arr.ndim == 2:
+            arr = np.stack([arr, arr, arr], axis=-1)
+        else:
+            raise ValueError(f"Array shape {arr.shape} for {mode} not recognised")
+        if resize:
+            # we always resize legacy to match hsc for our use-case
+            arr = resize_galaxy_to_fit(
+                arr, force_extent=(36, 124, 36, 124), target_size=160
+            )
+
+    arr = _norm(arr)
+    arr = (arr * 255).astype(np.uint8)
+
+    return arr
