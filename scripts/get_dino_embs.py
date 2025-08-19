@@ -3,27 +3,19 @@ import argparse
 import numpy as np
 import polars as pl
 import torch
-from datasets import Dataset, load_dataset
+from datasets import Dataset, load_dataset, concatenate_datasets
 from PIL import ImageFile
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AutoImageProcessor, AutoModel
 
 from pu.preprocess import PreprocessHF
-from pu.pu import mknn
-
-ImageFile.LOAD_TRUNCATED_IMAGES = True
-
+from pu.metrics import mknn
 
 def main():
     parser = argparse.ArgumentParser(description="Generate embeddings for astronomy")
     parser.add_argument(
-        "--modes", nargs=2, default=["hsc", "jwst"], help="Modality names"
-    )
-    parser.add_argument(
-        "--input-dataset",
-        default="Smith42/jwst_hsc_crossmatched",
-        help="Input HuggingFace dataset",
+        "--mode", default="jwst", help="Mode to compare to hsc"
     )
     parser.add_argument(
         "--output-dataset",
@@ -42,47 +34,77 @@ def main():
 
     args = parser.parse_args()
 
-    modes = args.modes
-    hf_ds = args.input_dataset
+    comp_mode = args.mode
+    modes = ["hsc", comp_mode]
+    hf_ds = f"Smith42/{comp_mode}_hsc_crossmatched"
     upload_ds = args.output_dataset
     batch_size = args.batch_size
 
     def filterfun(idx):
-        if "jwst" not in modes:
+        if "jwst" != comp_mode:
             return True
         else:
             im = idx["jwst_image"]["flux"][3]
             v0, v1 = np.nanpercentile(im, 5), np.nanpercentile(im, 99)
             if v0 - v1 == 0:
                 return False
-            else:
-                return True
 
     df = pl.DataFrame()
     for size in ["small", "base", "large", "giant"]:
         model_name = f"facebook/dinov2-{size}"
         model = AutoModel.from_pretrained(model_name).to("cuda")
         model.eval()
-        processor = PreprocessHF(modes, AutoImageProcessor.from_pretrained(model_name))
+        processor = PreprocessHF(modes, AutoImageProcessor.from_pretrained(model_name), resize=True)
 
-        ds = (
-            load_dataset(hf_ds, split="train", streaming=True)
-            .filter(filterfun)
-            .select_columns([f"{mode}_image" for mode in modes])
-            .map(processor)
-            .remove_columns([f"{mode}_image" for mode in modes])
-        )
+        if (comp_mode == "jwst") or (comp_mode == "legacysurvey"):
+            ds = (
+                load_dataset(hf_ds, split="train", streaming=True)
+                .select_columns([f"{mode}_image" for mode in modes])
+                .filter(filterfun)
+                .map(processor)
+                .remove_columns([f"{mode}_image" for mode in modes])
+            )
+        elif comp_mode == "sdss":
+            ds = (concatenate_datasets((
+                load_dataset(hf_ds, split="train", streaming=True),
+                load_dataset("Shashwat20/SDSS_Interpolated", split="train", streaming=True)
+            ), axis=1)
+                .rename_column("image", "hsc_image")
+                .select_columns(["hsc_image", "embedding"])
+                .filter(filterfun)
+                .map(processor)
+                .remove_columns(["hsc_image"])
+            )
+        elif comp_mode == "desi":
+            ds = (concatenate_datasets((
+                load_dataset(hf_ds, split="train", streaming=True),
+                load_dataset("Smith42/specformer_desi", split="train", streaming=True)
+            ), axis=1)
+                .rename_column("image", "hsc_image")
+                .select_columns(["hsc_image", "embeddings"])
+                .filter(filterfun)
+                .map(processor)
+                .remove_columns(["hsc_image"])
+            )
+        else:
+            raise NotImplementedError
 
-        dl = iter(DataLoader(ds, batch_size=batch_size, num_workers=32))
+
+        dl = iter(DataLoader(ds, batch_size=batch_size))
 
         zs = {mode: [] for mode in modes}
         with torch.no_grad():
             for B in tqdm(dl):
                 for mode in modes:
-                    inputs = B[f"{mode}"].to("cuda")
-                    zs[mode].append(
-                        model(inputs).last_hidden_state.mean(dim=1).detach()
-                    )
+                    if mode == "sdss":
+                        zs[mode].append(torch.tensor(np.array(B["embedding"])).T)
+                    elif mode == "desi":
+                        zs[mode].append(torch.tensor(np.array(B["embeddings"])).T)
+                    else:
+                        inputs = B[f"{mode}"].to("cuda")
+                        zs[mode].append(
+                            model(inputs).last_hidden_state.mean(dim=1).detach()
+                        )
 
         zs = {mode: torch.cat(embs) for mode, embs in zs.items()}
         mknn_score = mknn(

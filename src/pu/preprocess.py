@@ -24,12 +24,10 @@ class PreprocessHF:
     def __call__(self, idx):
         result = {}
         for mode in self.modes:
-            if (mode != "desi") and (mode != "sdss"):
-                try:
-                    im = flux_to_pil(idx[f"{mode}_image"], mode, self.modes)
-                except KeyError:
-                    # Assume the dataset does not name the images by modality
-                    im = self.f2p(idx["image"], mode, self.modes)
+            if (mode == "desi") or (mode == "sdss"):
+                continue
+            else:
+                im = self.f2p(idx[f"{mode}_image"], mode, self.modes)
                 result[f"{mode}"] = self.autoproc(im, return_tensors="pt")[
                     "pixel_values"
                 ].squeeze()
@@ -67,12 +65,10 @@ class PreprocessAstropt:
     def __call__(self, idx):
         result = {}
         for mode in self.modes:
-            if (mode != "desi") and (mode != "sdss"):
-                try:
-                    im = self.f2p(idx[f"{mode}_image"], mode, self.modes).swapaxes(0, 2)
-                except KeyError:
-                    # Assume the dataset does not name the images by modality
-                    im = flux_to_pil(idx["image"], mode, self.modes).swapaxes(0, 2)
+            if (mode == "desi") or (mode == "sdss"):
+                continue
+            else:
+                im = self.f2p(idx[f"{mode}_image"], mode, self.modes).swapaxes(0, 2)
                 im = self.galproc.process_galaxy(
                     torch.from_numpy(im).to(torch.float)
                 ).to(torch.float)
@@ -116,9 +112,9 @@ def flux_to_pil(blob, mode, modes, resize=False, percentile_norm=True):
 
         if percentile_norm:
             norm_consts = {
-                "g": (-0.00847, 0.238),
-                "r": (-0.0129, 0.480),
-                "z": (-0.0291, 1.02),
+                "g": (-0.0179, 0.351),
+                "r": (-0.0265, 0.742),
+                "z": (-0.0578, 1.51),
             }
             arr = np.stack(
                 [
@@ -138,9 +134,9 @@ def flux_to_pil(blob, mode, modes, resize=False, percentile_norm=True):
 
         if percentile_norm:
             norm_consts = {
-                "f090w": (-0.0741, 2.38),
-                "f277w": (-0.0183, 5.76),
-                "f444w": (-0.0309, 4.06),
+                "f090w": (-0.0708, 2.45),
+                "f277w": (-0.0175, 5.84),
+                "f444w": (-0.0295, 4.09),
             }
             arr = np.stack(
                 [
@@ -166,9 +162,9 @@ def flux_to_pil(blob, mode, modes, resize=False, percentile_norm=True):
 
         if percentile_norm:
             norm_consts = {
-                "g": (-0.00216, 0.000766),
-                "r": (-0.00317, 0.0173),
-                "z": (-0.00843, 0.0350),
+                "g": (-0.00230, 0.00958),
+                "r": (-0.00360, 0.0219),
+                "z": (-0.00907, 0.0430),
             }
             arr = np.stack(
                 [
@@ -180,6 +176,6 @@ def flux_to_pil(blob, mode, modes, resize=False, percentile_norm=True):
 
     if not percentile_norm:
         arr = _norm(arr)
-    arr = (arr * 255).astype(np.uint8)
+    arr = (arr[..., ::-1] * 255).astype(np.uint8)
 
     return arr
