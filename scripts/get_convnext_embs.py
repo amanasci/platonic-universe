@@ -52,8 +52,8 @@ def main():
                 return True
 
     df = pl.DataFrame()
-    for size in ["nano", "tiny", "base", "large", "huge"]:
-        model_name = f"facebook/convnextv2-{size}-22k-384"
+    for size in ["nano", "tiny", "base", "large"]:
+        model_name = f"facebook/convnextv2-{size}-22k-224"
         model = AutoModel.from_pretrained(model_name).to("cuda")
         model.eval()
         processor = PreprocessHF(modes, AutoImageProcessor.from_pretrained(model_name), resize=False)
