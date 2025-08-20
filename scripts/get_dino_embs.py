@@ -26,7 +26,7 @@ def main():
         "--batch-size", type=int, default=128, help="Batch size for processing"
     )
     parser.add_argument(
-        "--num-workers", type=int, default=32, help="Number of data loader workers"
+        "--num-workers", type=int, default=0, help="Number of data loader workers"
     )
     parser.add_argument(
         "--knn-k", type=int, default=10, help="K value for mutual KNN calculation"
@@ -48,6 +48,8 @@ def main():
             v0, v1 = np.nanpercentile(im, 5), np.nanpercentile(im, 99)
             if v0 - v1 == 0:
                 return False
+            else:
+                return True
 
     df = pl.DataFrame()
     for size in ["small", "base", "large", "giant"]:
@@ -90,7 +92,7 @@ def main():
             raise NotImplementedError
 
 
-        dl = iter(DataLoader(ds, batch_size=batch_size))
+        dl = iter(DataLoader(ds, batch_size=batch_size, num_workers=args.num_workers))
 
         zs = {mode: [] for mode in modes}
         with torch.no_grad():
@@ -122,6 +124,9 @@ def main():
                 for mode, embs in zs.items()
             ]
         )
+
+    #print(df)
+    df.write_parquet(f"data/{comp_mode}_dino.parquet")
     if upload_ds is not None:
         Dataset.from_polars(df).push_to_hub(upload_ds)
 
