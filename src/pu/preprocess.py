@@ -105,7 +105,7 @@ def flux_to_pil(blob, mode, modes, resize=False, percentile_norm=True):
             raise ValueError(f"Array shape {arr.shape} for {mode} not recognised")
 
         if (("jwst" in modes) or ("desi" in modes) or ("sdss" in modes)) and resize:
-            # if comparing hsc to jwst resize hsc so it matches hsc
+            # if comparing hsc to jwst resize hsc so it matches jwst
             arr = resize_galaxy_to_fit(
                 arr, force_extent=(68, 92, 68, 92), target_size=96
             )
@@ -118,7 +118,7 @@ def flux_to_pil(blob, mode, modes, resize=False, percentile_norm=True):
             }
             arr = np.stack(
                 [
-                    _norm(arr[..., -1], norm_consts[band])
+                    _norm(arr[..., ii], norm_consts[band])
                     for ii, band in enumerate(("g", "r", "z"))
                 ],
                 axis=-1,
@@ -140,7 +140,7 @@ def flux_to_pil(blob, mode, modes, resize=False, percentile_norm=True):
             }
             arr = np.stack(
                 [
-                    _norm(arr[..., -1], norm_consts[band])
+                    _norm(arr[..., ii], norm_consts[band])
                     for ii, band in enumerate(("f090w", "f277w", "f444w"))
                 ],
                 axis=-1,
@@ -168,7 +168,7 @@ def flux_to_pil(blob, mode, modes, resize=False, percentile_norm=True):
             }
             arr = np.stack(
                 [
-                    _norm(arr[..., -1], norm_consts[band])
+                    _norm(arr[..., ii], norm_consts[band])
                     for ii, band in enumerate(("g", "r", "z"))
                 ],
                 axis=-1,

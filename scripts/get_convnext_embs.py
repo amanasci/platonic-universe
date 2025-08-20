@@ -56,7 +56,7 @@ def main():
         model_name = f"facebook/convnextv2-{size}-22k-384"
         model = AutoModel.from_pretrained(model_name).to("cuda")
         model.eval()
-        processor = PreprocessHF(modes, AutoImageProcessor.from_pretrained(model_name), resize=True)
+        processor = PreprocessHF(modes, AutoImageProcessor.from_pretrained(model_name), resize=False)
 
         if (comp_mode == "jwst") or (comp_mode == "legacysurvey"):
             ds = (
