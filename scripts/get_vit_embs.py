@@ -124,7 +124,7 @@ def main():
         df = df.with_columns(
             [
                 pl.Series(
-                    f"astropt_{size.lstrip('0')}_{mode}".lower(),
+                    f"vit_{size.lstrip('0')}_{mode}".lower(),
                     embs.cpu().numpy(),
                 )
                 for mode, embs in zs.items()

@@ -105,7 +105,7 @@ def main():
                     else:
                         inputs = B[f"{mode}"].to("cuda")
                         zs[mode].append(
-                            model(inputs).last_hidden_state.mean(dim=1).detach()
+                            model(inputs).last_hidden_state[:, 1:].mean(dim=1).detach()
                         )
 
         zs = {mode: torch.cat(embs) for mode, embs in zs.items()}
@@ -118,7 +118,7 @@ def main():
         df = df.with_columns(
             [
                 pl.Series(
-                    f"astropt_{size.lstrip('0')}_{mode}".lower(),
+                    f"dino_{size.lstrip('0')}_{mode}".lower(),
                     embs.cpu().numpy(),
                 )
                 for mode, embs in zs.items()
