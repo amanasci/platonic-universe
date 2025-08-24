@@ -115,7 +115,9 @@ def main():
             zs[modes[0]].cpu().numpy(), zs[modes[1]].cpu().numpy(), args.knn_k
         )
 
-        print(f"\nMutual KNN Score: {mknn_score:.8f}")
+        print(f"\nmknn astropt, {size}: {mknn_score:.8f}")
+        with open(f"data/{mode}_astropt_mknn.txt", "a") as fi:
+            fi.write(f"{size},{mknn_score:.8f}\n")
 
         df = df.with_columns(
             [

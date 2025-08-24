@@ -62,8 +62,8 @@ def main():
             "google/vit-huge-patch14-224-in21k",
         ]
     elif args.model == "dino":
-        sizes = ["small", "base", "large", "giant"
-        model_names = [f"facebook/dinov2-{size}" for size in sizes]
+        sizes = ["small", "base", "large", "giant"]
+        model_names = [f"facebook/dinov2-with-registers-{size}" for size in sizes]
     elif args.model == "convnext":
         sizes = ["nano", "tiny", "base", "large"]
         model_names = [f"facebook/convnextv2-{size}-22k-224" for size in sizes]
@@ -128,17 +128,26 @@ def main():
                         zs[mode].append(torch.tensor(np.array(B["embeddings"])).T)
                     else:
                         inputs = B[f"{mode}"].to("cuda")
-                        zs[mode].append(
-                        # TODO: change hidden state processing per model.
-                            model(inputs).last_hidden_state[:, 1:].mean(dim=1).detach()
-                        )
+                        if args.model == "vit":
+                            outputs = model(inputs).last_hidden_state[:, 1:].mean(dim=1).detach()
+                        elif args.model == "convnext":
+                            outputs = model(inputs).last_hidden_state.mean(dim=(2, 3)).detach()
+                        elif args.model == "dino":
+                            outputs = model(inputs).last_hidden_state[:, 0].detach()
+                        elif args.model == "ijepa":
+                            outputs = model(inputs).last_hidden_state.mean(dim=1).detach()
+                        else:
+                            raise NotImplementedError
+                        zs[mode].append(outputs)
 
         zs = {mode: torch.cat(embs) for mode, embs in zs.items()}
         mknn_score = mknn(
             zs[modes[0]].cpu().numpy(), zs[modes[1]].cpu().numpy(), args.knn_k
         )
 
-        print(f"\nMutual KNN Score: {mknn_score:.8f}")
+        print(f"\nmknn {args.model}, {size}: {mknn_score:.8f}")
+        with open(f"data/{mode}_{args.model}_mknn.txt", "a") as fi:
+            fi.write(f"{size},{mknn_score:.8f}\n")
 
         df = df.with_columns(
             [

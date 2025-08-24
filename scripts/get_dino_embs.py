@@ -53,7 +53,7 @@ def main():
 
     df = pl.DataFrame()
     for size in ["small", "base", "large", "giant"]:
-        model_name = f"facebook/dinov2-{size}"
+        model_name = f"facebook/dinov2-with-registers-{size}"
         model = AutoModel.from_pretrained(model_name).to("cuda")
         model.eval()
         processor = PreprocessHF(modes, AutoImageProcessor.from_pretrained(model_name), resize=False)
@@ -105,7 +105,7 @@ def main():
                     else:
                         inputs = B[f"{mode}"].to("cuda")
                         zs[mode].append(
-                            model(inputs).last_hidden_state[:, 1:].mean(dim=1).detach()
+                            model(inputs).last_hidden_state[:, 0].detach()
                         )
 
         zs = {mode: torch.cat(embs) for mode, embs in zs.items()}
