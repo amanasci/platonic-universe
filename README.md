@@ -15,23 +15,23 @@ Astronomical observations provide an ideal testbed for the PRH because:
 
 Our results (below) show that **larger models exhibit more similar representations**, even when trained across different data modalities. This suggests that astronomical foundation models may be able to leverage pre-trained general-purpose architectures.
 
-<img src="https://github.com/UniverseTBD/platonic-universe/blob/main/figs/mknn.png" width=90%/>
+<img src="https://github.com/UniverseTBD/platonic-universe/blob/main/figs/mknn.png" width=100%/>
 
 ## Repository Structure
 
 ```
 platonic-universe/
 ├── src/pu/                    # Core package
-│   ├── metrics.py            # MKNN similarity metrics
-│   ├── preprocess.py         # Data preprocessing for different models
-│   └── zoom.py              # Galaxy image resizing utilities
-├── scripts/                  # Experiment scripts
-│   ├── get_embs.py          # Extract embeddings from HuggingFace models
-│   ├── get_astropt_embs.py  # Extract embeddings from AstroPT models
+│   ├── metrics.py             # MKNN similarity metrics
+│   ├── preprocess.py          # Data preprocessing for different models
+│   └── zoom.py                # Galaxy image resizing utilities
+├── scripts/                   # Experiment scripts
+│   ├── get_embs.py            # Extract embeddings from HuggingFace models
+│   ├── get_astropt_embs.py    # Extract embeddings from AstroPT models
 │   ├── get_specformer_embs.py # Extract spectral embeddings
-│   ├── run_model.bash       # Batch script for model experiments
-│   └── run_astropt.bash     # Batch script for AstroPT experiments
-└── pyproject.toml           # Project dependencies
+│   ├── run_model.bash         # Batch script for model experiments
+│   └── run_astropt.bash       # Batch script for AstroPT experiments
+└── pyproject.toml             # Project dependencies
 ```
 
 ## Installation and Usage
