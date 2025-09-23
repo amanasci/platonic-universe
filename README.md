@@ -13,7 +13,9 @@ Astronomical observations provide an ideal testbed for the PRH because:
 - **Multiple Modalities**: We can compare representations across fundamentally different data types (like optical images, infrared images, and spectroscopy)
 - **Scale**: Modern astronomical surveys provide the data volume necessary to test convergence across multiple model architectures
 
-Our results show that **larger models exhibit more similar representations**, even when trained across different data modalities. This suggests that astronomical foundation models may be able to leverage pre-trained general-purpose architectures.
+Our results (below) show that **larger models exhibit more similar representations**, even when trained across different data modalities. This suggests that astronomical foundation models may be able to leverage pre-trained general-purpose architectures.
+
+<img src="https://github.com/UniverseTBD/platonic-universe/figs/mknn.png" width=90%/>
 
 ## Repository Structure
 
