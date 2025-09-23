@@ -1,4 +1,4 @@
-# The Platonic Universe: Testing The Platonic Representation Hypothesis With Astronomical Data
+# The Platonic Universe: Testing The Platonic Representation Hypothesis With Astronomical Data 🔮 💫
 
 This repository contains the code for testing the **Platonic Representation Hypothesis (PRH)** on astronomical data, as described in our paper "The Platonic Universe: Do Foundation Models See the Same Sky?"
 
