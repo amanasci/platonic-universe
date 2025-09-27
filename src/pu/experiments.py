@@ -2,13 +2,12 @@ import os
 import numpy as np
 import polars as pl
 import torch
-from datasets import Dataset, load_dataset, concatenate_datasets
+from datasets import Dataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import AutoImageProcessor, AutoModel
-from astropt.model_utils import load_astropt
 
-from pu.preprocess import PreprocessHF, PreprocessAstropt
+from pu.models import get_adapter
+from pu.datasets import get_dataset_adapter
 from pu.metrics import mknn
 
 def run_experiment(model_alias, mode, output_dataset=None, batch_size=128, num_workers=0, knn_k=10):
@@ -31,77 +30,50 @@ def run_experiment(model_alias, mode, output_dataset=None, batch_size=128, num_w
             else:
                 return True
 
-    if model_alias == "vit":
-        sizes = ["base", "large", "huge"]
-        model_names = [
-            "google/vit-base-patch16-224-in21k",
-            "google/vit-large-patch16-224-in21k",
-            "google/vit-huge-patch14-224-in21k",
-        ]
-    elif model_alias == "dino":
-        sizes = ["small", "base", "large", "giant"]
-        model_names = [f"facebook/dinov2-with-registers-{size}" for size in sizes]
+    model_map = {
+        "vit": (
+            ["base", "large", "huge"],
+            [
+                "google/vit-base-patch16-224-in21k",
+                "google/vit-large-patch16-224-in21k",
+                "google/vit-huge-patch14-224-in21k",
+            ],
+        ),
+        "dino": (
+            ["small", "base", "large", "giant"],
+            [f"facebook/dinov2-with-registers-{s}" for s in ["small", "base", "large", "giant"]],
+        ),
+        "convnext": (
+            ["nano", "tiny", "base", "large"],
+            [f"facebook/convnextv2-{s}-22k-224" for s in ["nano", "tiny", "base", "large"]],
+        ),
+        "ijepa": (
+            ["huge", "giant"],
+            ["facebook/ijepa_vith14_22k", "facebook/ijepa_vitg16_22k"],
+        ),
+        "astropt": (
+            ["015M", "095M", "850M"],
+            [f"Smith42/astroPT_v2.0" for _ in range(3)],
+        ),
+    }
 
-    elif model_alias == "convnext":
-        sizes = ["nano", "tiny", "base", "large"]
-        model_names = [f"facebook/convnextv2-{size}-22k-224" for size in sizes]
-
-    elif model_alias == "ijepa":
-        sizes = ["huge", "giant"]
-        model_names = [
-            "facebook/ijepa_vith14_22k",
-            "facebook/ijepa_vitg16_22k",
-        ]
-    elif model_alias == "astropt":
-        sizes = ["015M", "095M", "850M"]
-        model_names = [f"Smith42/astroPT_v2.0" for _ in sizes]
-    else:
+    try:
+        sizes, model_names = model_map[model_alias]
+    except KeyError:
         raise NotImplementedError(f"Model '{model_alias}' not implemented.")
 
     df = pl.DataFrame()
+    adapter_cls = get_adapter(model_alias)
     for size, model_name in zip(sizes, model_names):
-        if model_alias == 'astropt':
-            model = load_astropt(model_name, path=f"astropt/{size}").to("cuda")
-            processor = PreprocessAstropt(model.modality_registry, modes, resize=False)
-        else:
-            model = AutoModel.from_pretrained(model_name).to("cuda")
-            processor = PreprocessHF(modes, AutoImageProcessor.from_pretrained(model_name), resize=False)
-        
-        model.eval()
+        adapter = adapter_cls(model_name, size, alias=model_alias)
+        adapter.load()
+        processor = adapter.get_preprocessor(modes)
 
-        # Dataset loading logic (remains the same as in original scripts)
-        if (comp_mode == "jwst") or (comp_mode == "legacysurvey"):
-            ds = (
-                load_dataset(hf_ds, split="train", streaming=True)
-                .select_columns([f"{mode}_image" for mode in modes])
-                .filter(filterfun)
-                .map(processor)
-                .remove_columns([f"{mode}_image" for mode in modes])
-            )
-        elif comp_mode == "sdss":
-            ds = (concatenate_datasets((
-                load_dataset(hf_ds, split="train", streaming=True),
-                load_dataset("Shashwat20/SDSS_Interpolated", split="train", streaming=True)
-            ), axis=1)
-                .rename_column("image", "hsc_image")
-                .select_columns(["hsc_image", "embedding"])
-                .filter(filterfun)
-                .map(processor)
-                .remove_columns(["hsc_image"])
-            )
-        elif comp_mode == "desi":
-            ds = (concatenate_datasets((
-                load_dataset(hf_ds, split="train", streaming=True),
-                load_dataset("Smith42/specformer_desi", split="train", streaming=True)
-            ), axis=1)
-                .rename_column("image", "hsc_image")
-                .select_columns(["hsc_image", "embeddings"])
-                .filter(filterfun)
-                .map(processor)
-                .remove_columns(["hsc_image"])
-            )
-        else:
-            raise NotImplementedError
+        # Use dataset adapter to prepare the dataset (centralises dataset-specific logic)
+        dataset_adapter_cls = get_dataset_adapter(comp_mode)
+        dataset_adapter = dataset_adapter_cls(hf_ds, comp_mode)
+        dataset_adapter.load()
+        ds = dataset_adapter.prepare(processor, modes, filterfun)
 
 
         dl = iter(DataLoader(ds, batch_size=batch_size, num_workers=num_workers))
@@ -115,24 +87,8 @@ def run_experiment(model_alias, mode, output_dataset=None, batch_size=128, num_w
                     elif mode == "desi":
                         zs[mode].append(torch.tensor(np.array(B["embeddings"])).T)
                     else:
-                        if model_alias == "astropt":
-                            inputs = {
-                                "images": B[f"{mode}_images"].to("cuda"),
-                                "images_positions": B[f"{mode}_positions"].to("cuda"),
-                            }
-                            outputs = model.generate_embeddings(inputs)["images"].detach()
-                        else:
-                            inputs = B[f"{mode}"].to("cuda")
-                            if model_alias == "vit":
-                                outputs = model(inputs).last_hidden_state[:, 1:].mean(dim=1).detach()
-                            elif model_alias == "convnext":
-                                outputs = model(inputs).last_hidden_state.mean(dim=(2, 3)).detach()
-                            elif model_alias == "dino":
-                                outputs = model(inputs).last_hidden_state[:, 0].detach()
-                            elif model_alias == "ijepa":
-                                outputs = model(inputs).last_hidden_state.mean(dim=1).detach()
-                            else:
-                                raise NotImplementedError
+                        # Delegate embedding to the adapter implementation
+                        outputs = adapter.embed_for_mode(B, mode)
                         zs[mode].append(outputs)
 
 

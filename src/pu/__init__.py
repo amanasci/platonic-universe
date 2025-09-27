@@ -23,10 +23,11 @@ def setup_cache_dir(path: str) -> None:
     PU_CACHE_DIR = path
     _log.info("Cache dir set to %s", path)
 
-def compare_models_mknn(model, mode, batch_size=128, num_workers=0, knn_k=10) -> Dict[str, Any]:
+def compare_models_mknn(parquet_file: str) -> Dict[str, Any]:
     """
     Wrapper around the mknn comparison function to return results as a dictionary.
+    Accepts the path to a parquet file produced by `run_experiment`.
     """
-    run_experiment(model, mode, batch_size=batch_size, num_workers=num_workers, knn_k=knn_k)
+    return _mknn(parquet_file)
 
-__all__ = ["setup_cache_dir", "compare_models_mknn"]
+__all__ = ["setup_cache_dir", "compare_models_mknn", "run_experiment"]
