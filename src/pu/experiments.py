@@ -11,14 +11,14 @@ from astropt.model_utils import load_astropt
 from pu.preprocess import PreprocessHF, PreprocessAstropt
 from pu.metrics import mknn
 
-def run_experiment(model, mode, output_dataset=None, batch_size=128, num_workers=0, knn_k=10):
+def run_experiment(model_alias, mode, output_dataset=None, batch_size=128, num_workers=0, knn_k=10):
     """Runs the embedding generation experiment based on the provided arguments."""
-    model = model # e.g., 'vit', 'dino', 'astropt'
+
     comp_mode = mode
     modes = ["hsc", comp_mode]
     hf_ds = f"Smith42/{comp_mode}_hsc_crossmatched"
     upload_ds = output_dataset
-    batch_size =  batch_size
+    batch_size = batch_size
 
     def filterfun(idx):
         if "jwst" != comp_mode:
@@ -31,36 +31,36 @@ def run_experiment(model, mode, output_dataset=None, batch_size=128, num_workers
             else:
                 return True
 
-    if model == "vit":
+    if model_alias == "vit":
         sizes = ["base", "large", "huge"]
         model_names = [
             "google/vit-base-patch16-224-in21k",
             "google/vit-large-patch16-224-in21k",
             "google/vit-huge-patch14-224-in21k",
         ]
-    elif model == "dino":
+    elif model_alias == "dino":
         sizes = ["small", "base", "large", "giant"]
         model_names = [f"facebook/dinov2-with-registers-{size}" for size in sizes]
 
-    elif model == "convnext":
+    elif model_alias == "convnext":
         sizes = ["nano", "tiny", "base", "large"]
         model_names = [f"facebook/convnextv2-{size}-22k-224" for size in sizes]
 
-    elif model == "ijepa":
+    elif model_alias == "ijepa":
         sizes = ["huge", "giant"]
         model_names = [
             "facebook/ijepa_vith14_22k",
             "facebook/ijepa_vitg16_22k",
         ]
-    elif model == "astropt":
+    elif model_alias == "astropt":
         sizes = ["015M", "095M", "850M"]
         model_names = [f"Smith42/astroPT_v2.0" for _ in sizes]
     else:
-        raise NotImplementedError(f"Model '{model}' not implemented.")
+        raise NotImplementedError(f"Model '{model_alias}' not implemented.")
 
     df = pl.DataFrame()
     for size, model_name in zip(sizes, model_names):
-        if model == 'astropt':
+        if model_alias == 'astropt':
             model = load_astropt(model_name, path=f"astropt/{size}").to("cuda")
             processor = PreprocessAstropt(model.modality_registry, modes, resize=False)
         else:
@@ -115,7 +115,7 @@ def run_experiment(model, mode, output_dataset=None, batch_size=128, num_workers
                     elif mode == "desi":
                         zs[mode].append(torch.tensor(np.array(B["embeddings"])).T)
                     else:
-                        if model == "astropt":
+                        if model_alias == "astropt":
                             inputs = {
                                 "images": B[f"{mode}_images"].to("cuda"),
                                 "images_positions": B[f"{mode}_positions"].to("cuda"),
@@ -123,13 +123,13 @@ def run_experiment(model, mode, output_dataset=None, batch_size=128, num_workers
                             outputs = model.generate_embeddings(inputs)["images"].detach()
                         else:
                             inputs = B[f"{mode}"].to("cuda")
-                            if model == "vit":
+                            if model_alias == "vit":
                                 outputs = model(inputs).last_hidden_state[:, 1:].mean(dim=1).detach()
-                            elif model == "convnext":
+                            elif model_alias == "convnext":
                                 outputs = model(inputs).last_hidden_state.mean(dim=(2, 3)).detach()
-                            elif model == "dino":
+                            elif model_alias == "dino":
                                 outputs = model(inputs).last_hidden_state[:, 0].detach()
-                            elif model == "ijepa":
+                            elif model_alias == "ijepa":
                                 outputs = model(inputs).last_hidden_state.mean(dim=1).detach()
                             else:
                                 raise NotImplementedError
@@ -141,24 +141,24 @@ def run_experiment(model, mode, output_dataset=None, batch_size=128, num_workers
             zs[modes[0]].cpu().numpy(), zs[modes[1]].cpu().numpy(), knn_k
         )
 
-        print(f"\nmknn {model}, {size}: {mknn_score:.8f}")
+        print(f"\nmknn {model_alias}, {size}: {mknn_score:.8f}")
 
         # Create the directory if it doesn't exist
         os.makedirs("data", exist_ok=True)  
         # Creating the file to store mknn results
-        with open(f"data/{comp_mode}_{model}_mknn.txt", "a") as fi:
+        with open(f"data/{comp_mode}_{model_alias}_mknn.txt", "a") as fi:
             fi.write(f"{size},{mknn_score:.8f}\n")
 
         df = df.with_columns(
             [
                 pl.Series(
-                    f"{model}_{size.lstrip('0')}_{mode}".lower(),
+                    f"{model_alias}_{size.lstrip('0')}_{mode}".lower(),
                     embs.cpu().numpy(),
                 )
                 for mode, embs in zs.items()
             ]
         )
 
-    df.write_parquet(f"data/{comp_mode}_{model}.parquet")
+    df.write_parquet(f"data/{comp_mode}_{model_alias}.parquet")
     if upload_ds is not None:
         Dataset.from_polars(df).push_to_hub(upload_ds)
