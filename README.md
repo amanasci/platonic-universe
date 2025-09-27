@@ -34,19 +34,22 @@ platonic-universe/
 └── pyproject.toml             # Project dependencies
 ```
 
-## Installation and Usage
+## Installation
 
-1. **Clone the repository:**
-```bash
-git clone https://github.com/UniverseTBD/platonic-universe.git
-cd platonic-universe
-```
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/UniverseTBD/platonic-universe.git](https://github.com/UniverseTBD/platonic-universe.git)
+    cd platonic-universe
+    ```
 
-2. **Install dependencies using uv:**
-```bash
-pip install uv
-uv sync
-```
+2.  **Install dependencies using uv:**
+    ```bash
+    pip install uv
+    uv sync
+    ```
+3. **Install the package**
+   ```bash
+   pip install .
 
 ### Quick Start: Running Experiments
 

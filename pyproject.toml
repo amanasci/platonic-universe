@@ -22,6 +22,9 @@ dependencies = [
 requires = ["hatchling", "hatch-requirements-txt", "hatch-vcs"]
 build-backend = "hatchling.build"
 
+[project.script]
+platonic-universe = "pu.__main__:main"
+
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 ignore = ["E501"]
