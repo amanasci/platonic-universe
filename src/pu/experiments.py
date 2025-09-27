@@ -13,6 +13,7 @@ from pu.metrics import mknn
 
 def run_experiment(model, mode, output_dataset=None, batch_size=128, num_workers=0, knn_k=10):
     """Runs the embedding generation experiment based on the provided arguments."""
+    model = model # e.g., 'vit', 'dino', 'astropt'
     comp_mode = mode
     modes = ["hsc", comp_mode]
     hf_ds = f"Smith42/{comp_mode}_hsc_crossmatched"

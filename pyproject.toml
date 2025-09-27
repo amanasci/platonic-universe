@@ -23,7 +23,7 @@ requires = ["hatchling", "hatch-requirements-txt", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project.scripts]
-platonic-universe = "pu.__main__:main"
+platonic_universe = "pu.__main__:main"
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
