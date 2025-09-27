@@ -1,6 +1,6 @@
 import argparse
 from pu.experiments import run_experiment
-from pu.metrics import mknn as run_mknn_comparison
+from pu.metrics import run_mknn_comparison
 
 def main():
     parser = argparse.ArgumentParser(description="Platonic Universe Experiments")
@@ -22,9 +22,11 @@ def main():
     args = parser.parse_args()
 
     if args.command == "run":
-        run_experiment(args)
+        run_experiment(args.model, args.mode, args.output_dataset, args.batch_size, args.num_workers, args.knn_k)
     elif args.command == "compare":
         run_mknn_comparison(args.parquet_file)
+
+
 
 if __name__ == "__main__":
     main()
