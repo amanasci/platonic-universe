@@ -1,6 +1,6 @@
 import argparse
 from pu.experiments import run_experiment
-from pu.metrics import run_mknn_comparison
+from pu.metrics import mknn as run_mknn_comparison
 
 def main():
     parser = argparse.ArgumentParser(description="Platonic Universe Experiments")

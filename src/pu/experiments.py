@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import polars as pl
 import torch
@@ -39,7 +40,17 @@ def run_experiment(args):
     elif args.model == "dino":
         sizes = ["small", "base", "large", "giant"]
         model_names = [f"facebook/dinov2-with-registers-{size}" for size in sizes]
-    # ... (add other model definitions here)
+
+    elif args.model == "convnext":
+        sizes = ["nano", "tiny", "base", "large"]
+        model_names = [f"facebook/convnextv2-{size}-22k-224" for size in sizes]
+
+    elif args.model == "ijepa":
+        sizes = ["huge", "giant"]
+        model_names = [
+            "facebook/ijepa_vith14_22k",
+            "facebook/ijepa_vitg16_22k",
+        ]
     elif args.model == "astropt":
         sizes = ["015M", "095M", "850M"]
         model_names = [f"Smith42/astroPT_v2.0" for _ in sizes]
@@ -130,7 +141,11 @@ def run_experiment(args):
         )
 
         print(f"\nmknn {args.model}, {size}: {mknn_score:.8f}")
-        with open(f"data/{comp_mode}_{args.model}_mknn.txt", "a") as fi:
+
+        # Create the directory if it doesn't exist
+        os.makedirs("data", exist_ok=True)  
+        # Creating the file to store mknn results
+        with open(f"data/{comp_mode}_{args.model}_mknn.txt", "w") as fi:
             fi.write(f"{size},{mknn_score:.8f}\n")
 
         df = df.with_columns(
