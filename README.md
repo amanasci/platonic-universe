@@ -53,32 +53,21 @@ platonic-universe/
 
 ### Quick Start: Running Experiments
 
-The repository provides scripts to test representational alignment across different astronomical datasets and model architectures.
+There are two methods to run experiments:
 
-#### 1. Test Vision Models (ViT, DINOv2, ConvNeXtv2, IJEPA)
+1. **Using platonic_universe CLI:**
+    ```bash
+    platonic_universe run --model vit --mode jwst 
+    ```
 
-```bash
-# Run all modalities for a specific model
-./scripts/run_model.bash vit 0       # ViT on GPU 0
-./scripts/run_model.bash dino 1      # DINOv2 on GPU 1
-./scripts/run_model.bash convnext 2  # ConvNeXtv2 on GPU 2
-./scripts/run_model.bash ijepa 3     # IJEPA on GPU 3
-```
+2. **Using python pakage directly:**
+    ```python
+    import pu 
 
-#### 2. Test AstroPT Models
+    pu.run_experiment("vit", "sdss", batch_size=64, num_workers=1, knn_k=10)
+    ``` 
 
-```bash
-# Run AstroPT across all modalities
-./scripts/run_astropt.bash 0  # on GPU 0
-```
 
-#### 3. Individual Model Runs
-
-```bash
-# Test specific model-modality combinations
-uv run scripts/get_embs.py --model vit --mode jwst --num-workers 32
-uv run scripts/get_embs.py --model dino --mode legacysurvey --num-workers 32
-```
 
 ### Supported Models & Datasets
 
