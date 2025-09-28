@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 
 
 # Public helpers for programmatic use (wrappers around your CLI handlers)
-from .experiments import run_experiment
+from .experiments import run_experiment#, get_specformer_embeddings 
 from .metrics import run_mknn_comparison as _mknn
 
 _log = logging.getLogger(__name__)
@@ -30,4 +30,4 @@ def compare_models_mknn(parquet_file: str) -> Dict[str, Any]:
     """
     return _mknn(parquet_file)
 
-__all__ = ["setup_cache_dir", "compare_models_mknn", "run_experiment"]
+__all__ = ["setup_cache_dir", "compare_models_mknn", "run_experiment"] # "get_specformer_embeddings"]
