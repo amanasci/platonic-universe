@@ -3,7 +3,7 @@ name = "platonic-universe"
 version = "0.1.0"
 description = "Scripts to test the Platonic Representation Hypothesis on astronomical data"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "argparse>=1.4.0",
     "astropt>=2.0.5",
