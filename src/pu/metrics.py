@@ -26,6 +26,30 @@ def mknn(Z1, Z2, k=10):
     return np.mean(overlap) / k
 
 
+def jaccard_index(Z1, Z2, k=10):
+    """
+    Calculate Jaccard index of k nearest neighbours
+    """
+    assert len(Z1) == len(Z2)
+
+    nn1 = (
+        NearestNeighbors(n_neighbors=k, metric="cosine")
+        .fit(Z1)
+        .kneighbors(return_distance=False)
+    )
+    nn2 = (
+        NearestNeighbors(n_neighbors=k, metric="cosine")
+        .fit(Z2)
+        .kneighbors(return_distance=False)
+    )
+
+    jaccard = [
+        len(set(a).intersection(b)) / len(set(a).union(b)) for a, b in zip(nn1, nn2)
+    ]
+
+    return np.mean(jaccard)
+
+
 def run_mknn_comparison(parquet_file: str) -> Dict[str, Any]:
     """
     Load embeddings from a Parquet file and compute the mknn metric between
