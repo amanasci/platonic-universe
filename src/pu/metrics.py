@@ -29,6 +29,8 @@ def mknn(Z1, Z2, k=10):
 def jaccard_index(Z1, Z2, k=10):
     """
     Calculate Jaccard index of k nearest neighbours
+
+    Gives a value between 0 and 1, where 1 means the k nearest neighbours are identical.
     """
     assert len(Z1) == len(Z2)
 

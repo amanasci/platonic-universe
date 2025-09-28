@@ -17,29 +17,13 @@ Our results (below) show that **larger models exhibit more similar representatio
 
 <img src="https://github.com/UniverseTBD/platonic-universe/blob/main/figs/mknn.png" width=100%/>
 
-## Repository Structure
-
-```
-platonic-universe/
-├── src/pu/                    # Core package
-│   ├── metrics.py             # MKNN similarity metrics
-│   ├── preprocess.py          # Data preprocessing for different models
-│   └── zoom.py                # Galaxy image resizing utilities
-├── scripts/                   # Experiment scripts
-│   ├── get_embs.py            # Extract embeddings from HuggingFace models
-│   ├── get_astropt_embs.py    # Extract embeddings from AstroPT models
-│   ├── get_specformer_embs.py # Extract spectral embeddings
-│   ├── run_model.bash         # Batch script for model experiments
-│   └── run_astropt.bash       # Batch script for AstroPT experiments
-└── pyproject.toml             # Project dependencies
-```
 
 ## Installation
 
 1.  **Clone the repository:**
     ```bash
     git clone [https://github.com/UniverseTBD/platonic-universe.git](https://github.com/UniverseTBD/platonic-universe.git)
-    cd platonic-universe
+    cd platonic-universe    
     ```
 
 2.  **Install dependencies using uv:**
