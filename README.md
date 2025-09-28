@@ -77,7 +77,7 @@ There are two methods to run experiments:
 - **ConvNeXtv2**: Nano, Tiny, Base, Large
 - **IJEPA**: Huge, Giant
 - **AstroPT**: Astronomy-specific transformer (Small, Base, Large)
-- **Specformer**: Spectroscopy-specific model
+- **Specformer**: Spectroscopy-specific model (Enable by uncommenting relevant lines in 'experiments.py')
 
 **Astronomical Datasets:**
 - **HSC (Hyper Suprime-Cam)**: Ground-based optical imaging (reference baseline)
