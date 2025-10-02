@@ -45,6 +45,27 @@ def run_experiment(model_alias, mode, output_dataset=None, batch_size=128, num_w
             ["small", "base", "large", "giant"],
             [f"facebook/dinov2-with-registers-{s}" for s in ["small", "base", "large", "giant"]],
         ),
+        "dinov3":(
+            [
+                "vits16", "vits16plus", "vitb16", "vitl16", "vith16plus", "vit7b16",
+                "convnext-base", "convnext-large", "convnext-small", "convnext-tiny",
+                "vitl16-sat493m", "vit7b16-sat493m",
+            ],
+            [
+                "facebook/dinov3-vits16-pretrain-lvd1689m",
+                "facebook/dinov3-vits16plus-pretrain-lvd1689m",
+                "facebook/dinov3-vitb16-pretrain-lvd1689m",
+                "facebook/dinov3-vitl16-pretrain-lvd1689m",
+                "facebook/dinov3-vith16plus-pretrain-lvd1689m",
+                "facebook/dinov3-vit7b16-pretrain-lvd1689m",
+                "facebook/dinov3-convnext-base-pretrain-lvd1689m",
+                "facebook/dinov3-convnext-large-pretrain-lvd1689m",
+                "facebook/dinov3-convnext-small-pretrain-lvd1689m",
+                "facebook/dinov3-convnext-tiny-pretrain-lvd1689m",
+                "facebook/dinov3-vitl16-pretrain-sat493m",
+                "facebook/dinov3-vit7b16-pretrain-sat493m",
+            ],
+        ),
         "convnext": (
             ["nano", "tiny", "base", "large"],
             [f"facebook/convnextv2-{s}-22k-224" for s in ["nano", "tiny", "base", "large"]],

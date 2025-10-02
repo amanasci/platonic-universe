@@ -39,6 +39,8 @@ class HFAdapter(ModelAdapter):
                 emb = outputs.mean(dim=(2, 3)).detach()
             elif self.alias == "dino":
                 emb = outputs[:, 0].detach()
+            elif self.alias == "dinov3":
+                emb = outputs[:, 0, :].detach()
             elif self.alias == "ijepa":
                 emb = outputs.mean(dim=1).detach()
             else:
@@ -47,5 +49,5 @@ class HFAdapter(ModelAdapter):
         return emb
 
 # Register this adapter for the HF-style aliases used by the repo
-for alias in ("vit", "dino", "convnext", "ijepa"):
+for alias in ("vit", "dino","dinov3", "convnext", "ijepa"):
     register_adapter(alias, HFAdapter)
