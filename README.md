@@ -34,6 +34,7 @@ Our results (below) show that **larger models exhibit more similar representatio
 3. **Install the package**
    ```bash
    pip install .
+   ```
 
 ### Quick Start: Running Experiments
 

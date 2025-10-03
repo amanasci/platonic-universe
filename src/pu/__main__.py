@@ -21,7 +21,12 @@ def main():
 
     args = parser.parse_args()
 
+    PAIRED_MODES = {"sdss", "desi"}
     if args.command == "run":
+        import sys
+        if args.mode in PAIRED_MODES and args.num_workers > 0:
+            print(f"Warning: Setting num_workers=0 for paired mode '{args.mode}because multiple workers can change draw order and break pairing.")
+            args.num_workers = 0
         run_experiment(args.model, args.mode, args.output_dataset, args.batch_size, args.num_workers, args.knn_k)
     elif args.command == "compare":
         run_mknn_comparison(args.parquet_file)
