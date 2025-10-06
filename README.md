@@ -126,9 +126,11 @@ If you use this code in your research, please cite:
 
 ```bibtex
 @article{utbd2025,
-  title={The Platonic Universe: Do Foundation Models See the Same Sky?},
-  author={UniverseTBD: Duraphe, Kshitij and Smith, Michael J. and Sourav, Shashwat and Wu, John F.},
-  journal={Machine Learning and the Physical Sciences Workshop at NeurIPS},
-  year={2025}
+	author = {{UniverseTBD} and Duraphe, K. and Smith, M. J. and Sourav, S. and Wu, J. F.},
+	title = {{The Platonic Universe: Do Foundation Models See the Same Sky?}},
+	journal = {ArXiv e-prints},
+	year = {2025},
+	eprint = {2509.19453},
+	doi = {10.48550/arXiv.2509.19453}
 }
 ```
