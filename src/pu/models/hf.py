@@ -13,6 +13,7 @@ class HFAdapter(ModelAdapter):
       - 'dino' -> CLS token (last_hidden_state[:,0])
       - 'convnext' -> spatial mean over HxW (last_hidden_state.mean(dim=(2,3)))
       - 'ijepa' -> mean over token dim (last_hidden_state.mean(dim=1))
+      - 'vjepa' -> mean over token dim (last_hidden_state.mean(dim=1))
     """
 
     def __init__(self, model_name: str, size: str, alias: str = None):
@@ -44,6 +45,7 @@ class HFAdapter(ModelAdapter):
             elif self.alias == "ijepa":
                 emb = outputs.mean(dim=1).detach()
             elif self.alias == "vjepa":
+                print(outputs.shape)
                 emb = outputs.mean(dim=1).detach()
             else:
                 # Default fallback: mean over token dim excluding CLS if present

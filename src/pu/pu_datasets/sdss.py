@@ -1,10 +1,10 @@
 from typing import Callable, Iterable
 from datasets import load_dataset, concatenate_datasets
-from pu.datasets.base import DatasetAdapter
-from pu.datasets.registry import register_dataset
+from pu.pu_datasets.base import DatasetAdapter
+from pu.pu_datasets.registry import register_dataset
 
-class DESIAdapter(DatasetAdapter):
-    """Adapter for the DESI case that concatenates specformer embeddings."""
+class SDSSAdapter(DatasetAdapter):
+    """Adapter for the SDSS case that concatenates an external SDSS dataset."""
 
     def load(self) -> None:
         # No external resources required for this adapter.
@@ -15,12 +15,12 @@ class DESIAdapter(DatasetAdapter):
             concatenate_datasets(
                 (
                     load_dataset(self.hf_ds, split="train", streaming=True),
-                    load_dataset("Smith42/specformer_desi", split="train", streaming=True),
+                    load_dataset("Shashwat20/SDSS_Interpolated", split="train", streaming=True),
                 ),
                 axis=1,
             )
             .rename_column("image", "hsc_image")
-            .select_columns(["hsc_image", "embeddings"])
+            .select_columns(["hsc_image", "embedding"])
             .filter(filterfun)
             .map(processor)
             .remove_columns(["hsc_image"])
@@ -28,4 +28,4 @@ class DESIAdapter(DatasetAdapter):
         return ds
 
 # Register adapter
-register_dataset("desi", DESIAdapter)
+register_dataset("sdss", SDSSAdapter)
