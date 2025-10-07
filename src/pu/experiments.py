@@ -74,6 +74,13 @@ def run_experiment(model_alias, mode, output_dataset=None, batch_size=128, num_w
             ["huge", "giant"],
             ["facebook/ijepa_vith14_22k", "facebook/ijepa_vitg16_22k"],
         ),
+        "vjepa": (
+            ["large", "huge", "giant"],
+            [
+                "facebook/vjepa2-vitl-fpc64-256",
+                "facebook/vjepa2-vith-fpc64-256",
+                "facebook/vjepa2-vitg-fpc64-256",
+            ],
         "astropt": (
             ["015M", "095M", "850M"],
             [f"Smith42/astroPT_v2.0" for _ in range(3)],
