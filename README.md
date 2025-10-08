@@ -33,7 +33,7 @@ Our results (below) show that **larger models exhibit more similar representatio
     ```
 3. **Install the package**
    ```bash
-   pip install .
+   uv pip install .
    ```
 
 ### Quick Start: Running Experiments
@@ -83,30 +83,6 @@ print(f"MKNN alignment score: {score:.4f}")
 ```
 
 **Higher MKNN scores** indicate more similar representations between models or modalities.
-
-## Key Scripts Explained
-
-### `get_embs.py`
-Extracts embeddings from HuggingFace vision models across different astronomical datasets:
-
-```bash
-uv run scripts/get_embs.py \
-    --model vit \       # Model type: vit, dino, convnext, ijepa
-    --mode jwst \       # Dataset: jwst, legacysurvey, desi, sdss
-    --batch-size 128 \  # Processing batch size
-    --num-workers 32 \  # DataLoader workers
-    --knn-k 10          # K for MKNN calculation
-```
-
-### `get_astropt_embs.py`
-Extracts embeddings from AstroPT models (astronomy-specific transformers):
-
-```bash
-uv run scripts/get_astropt_embs.py \
-    --mode jwst \       # Dataset to compare with HSC
-    --batch-size 128 \  # Processing batch size
-    --num-workers 32    # DataLoader workers
-```
 
 ## Contributing
 
