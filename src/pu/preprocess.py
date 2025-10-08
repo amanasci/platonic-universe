@@ -28,9 +28,15 @@ class PreprocessHF:
                 continue
             else:
                 im = self.f2p(idx[f"{mode}_image"], mode, self.modes)
-                result[f"{mode}"] = self.autoproc(im, return_tensors="pt")[
-                    "pixel_values"
-                ].squeeze()
+                try:
+                    result[f"{mode}"] = self.autoproc(im, return_tensors="pt")[
+                        "pixel_values"
+                    ].squeeze()
+                except KeyError as err:
+                    # Assume we have a VJEPA
+                    result[f"{mode}"] = self.autoproc(im, return_tensors="pt")[
+                        "pixel_values_videos"
+                    ].repeat(1, 16, 1, 1, 1).squeeze()
 
         return result
 

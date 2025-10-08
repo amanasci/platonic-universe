@@ -1,5 +1,5 @@
 import torch
-from transformers import AutoModel, AutoImageProcessor
+from transformers import AutoModel, AutoImageProcessor, AutoVideoProcessor
 from typing import Any, Dict, Iterable
 from pu.models.base import ModelAdapter
 from pu.preprocess import PreprocessHF
@@ -22,7 +22,10 @@ class HFAdapter(ModelAdapter):
         self.model = None
 
     def load(self) -> None:
-        self.processor = AutoImageProcessor.from_pretrained(self.model_name)
+        if self.alias == "vjepa":
+            self.processor = AutoVideoProcessor.from_pretrained(self.model_name)
+        else:
+            self.processor = AutoImageProcessor.from_pretrained(self.model_name)
         self.model = AutoModel.from_pretrained(self.model_name).to("cuda").eval()
 
     def get_preprocessor(self, modes: Iterable[str]):
@@ -45,7 +48,6 @@ class HFAdapter(ModelAdapter):
             elif self.alias == "ijepa":
                 emb = outputs.mean(dim=1).detach()
             elif self.alias == "vjepa":
-                print(outputs.shape)
                 emb = outputs.mean(dim=1).detach()
             else:
                 # Default fallback: mean over token dim excluding CLS if present
