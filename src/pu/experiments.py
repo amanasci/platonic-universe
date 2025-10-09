@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 
 from pu.models import get_adapter
-from pu.datasets import get_dataset_adapter
+from pu.pu_datasets import get_dataset_adapter
 from pu.metrics import mknn
 #from astroclip.models.specformer import SpecFormer
 
@@ -73,6 +73,14 @@ def run_experiment(model_alias, mode, output_dataset=None, batch_size=128, num_w
         "ijepa": (
             ["huge", "giant"],
             ["facebook/ijepa_vith14_22k", "facebook/ijepa_vitg16_22k"],
+        ),
+        "vjepa": (
+            ["large", "huge", "giant"],
+            [
+                "facebook/vjepa2-vitl-fpc64-256",
+                "facebook/vjepa2-vith-fpc64-256",
+                "facebook/vjepa2-vitg-fpc64-256",
+            ],
         ),
         "astropt": (
             ["015M", "095M", "850M"],

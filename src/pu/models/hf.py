@@ -1,5 +1,5 @@
 import torch
-from transformers import AutoModel, AutoImageProcessor
+from transformers import AutoModel, AutoImageProcessor, AutoVideoProcessor
 from typing import Any, Dict, Iterable
 from pu.models.base import ModelAdapter
 from pu.preprocess import PreprocessHF
@@ -13,6 +13,7 @@ class HFAdapter(ModelAdapter):
       - 'dino' -> CLS token (last_hidden_state[:,0])
       - 'convnext' -> spatial mean over HxW (last_hidden_state.mean(dim=(2,3)))
       - 'ijepa' -> mean over token dim (last_hidden_state.mean(dim=1))
+      - 'vjepa' -> mean over token dim (last_hidden_state.mean(dim=1))
     """
 
     def __init__(self, model_name: str, size: str, alias: str = None):
@@ -21,7 +22,10 @@ class HFAdapter(ModelAdapter):
         self.model = None
 
     def load(self) -> None:
-        self.processor = AutoImageProcessor.from_pretrained(self.model_name)
+        if self.alias == "vjepa":
+            self.processor = AutoVideoProcessor.from_pretrained(self.model_name)
+        else:
+            self.processor = AutoImageProcessor.from_pretrained(self.model_name)
         self.model = AutoModel.from_pretrained(self.model_name).to("cuda").eval()
 
     def get_preprocessor(self, modes: Iterable[str]):
@@ -43,11 +47,13 @@ class HFAdapter(ModelAdapter):
                 emb = outputs[:, 0, :].detach()
             elif self.alias == "ijepa":
                 emb = outputs.mean(dim=1).detach()
+            elif self.alias == "vjepa":
+                emb = outputs.mean(dim=1).detach()
             else:
                 # Default fallback: mean over token dim excluding CLS if present
                 emb = outputs.mean(dim=1).detach()
         return emb
 
 # Register this adapter for the HF-style aliases used by the repo
-for alias in ("vit", "dino","dinov3", "convnext", "ijepa"):
+for alias in ("vit", "dino","dinov3", "convnext", "ijepa", "vjepa"):
     register_adapter(alias, HFAdapter)

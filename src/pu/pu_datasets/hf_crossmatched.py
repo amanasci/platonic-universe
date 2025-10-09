@@ -1,7 +1,7 @@
 from typing import Callable, Iterable
 from datasets import load_dataset
-from pu.datasets.base import DatasetAdapter
-from pu.datasets.registry import register_dataset
+from pu.pu_datasets.base import DatasetAdapter
+from pu.pu_datasets.registry import register_dataset
 
 class HFCrossmatchedAdapter(DatasetAdapter):
     """Adapter for the generic HF crossmatched datasets (used for jwst, legacysurvey)."""
