@@ -86,6 +86,14 @@ def run_experiment(model_alias, mode, output_dataset=None, batch_size=128, num_w
             ["015M", "095M", "850M"],
             [f"Smith42/astroPT_v2.0" for _ in range(3)],
         ),
+        "vim": (
+            ["tiny", "small", "base"],
+            [
+                "hustvl/Vim-tiny-midclstok",
+                "hustvl/Vim-small-midclstok",
+                "hustvl/Vim-base-midclstok",
+            ],
+        ),
     }
 
     try:

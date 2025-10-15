@@ -62,6 +62,7 @@ There are two methods to run experiments:
 - **ConvNeXtv2**: Nano, Tiny, Base, Large
 - **IJEPA**: Huge, Giant
 - **AstroPT**: Astronomy-specific transformer (Small, Base, Large)
+- **Vision Mamba (Vim)**: Tiny, Small, Base - Efficient visual representation with bidirectional state space models
 - **Specformer**: Spectroscopy-specific model (Enable by uncommenting relevant lines in 'experiments.py')
 
 **Astronomical Datasets:**
