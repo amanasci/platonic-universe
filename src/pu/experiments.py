@@ -1,4 +1,5 @@
 import os
+
 import numpy as np
 import polars as pl
 import torch
@@ -6,10 +7,10 @@ from datasets import Dataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-
+from pu.metrics import mknn
 from pu.models import get_adapter
 from pu.pu_datasets import get_dataset_adapter
-from pu.metrics import mknn
+
 #from astroclip.models.specformer import SpecFormer
 
 def run_experiment(model_alias, mode, output_dataset=None, batch_size=128, num_workers=0, knn_k=10):
@@ -84,7 +85,11 @@ def run_experiment(model_alias, mode, output_dataset=None, batch_size=128, num_w
         ),
         "astropt": (
             ["015M", "095M", "850M"],
-            [f"Smith42/astroPT_v2.0" for _ in range(3)],
+            ["Smith42/astroPT_v2.0" for _ in range(3)],
+        ),
+        "vim": (
+            ["tiny", "small"],
+            ["hustvl/vim-tiny-midclstok", "hustvl/vim-small-midclstok"],
         ),
     }
 

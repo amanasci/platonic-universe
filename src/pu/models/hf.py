@@ -1,9 +1,12 @@
-import torch
-from transformers import AutoModel, AutoImageProcessor, AutoVideoProcessor
 from typing import Any, Dict, Iterable
+
+import torch
+from transformers import AutoImageProcessor, AutoModel, AutoVideoProcessor
+
 from pu.models.base import ModelAdapter
-from pu.preprocess import PreprocessHF
 from pu.models.registry import register_adapter
+from pu.preprocess import PreprocessHF
+
 
 class HFAdapter(ModelAdapter):
     """
@@ -14,6 +17,7 @@ class HFAdapter(ModelAdapter):
       - 'convnext' -> spatial mean over HxW (last_hidden_state.mean(dim=(2,3)))
       - 'ijepa' -> mean over token dim (last_hidden_state.mean(dim=1))
       - 'vjepa' -> mean over token dim (last_hidden_state.mean(dim=1))
+      - 'vim' -> CLS token (last_hidden_state[:,0])
     """
 
     def __init__(self, model_name: str, size: str, alias: str = None):
@@ -49,11 +53,14 @@ class HFAdapter(ModelAdapter):
                 emb = outputs.mean(dim=1).detach()
             elif self.alias == "vjepa":
                 emb = outputs.mean(dim=1).detach()
+            elif self.alias == "vim":
+                # Vision Mamba uses CLS token similar to DINO
+                emb = outputs[:, 0].detach()
             else:
                 # Default fallback: mean over token dim excluding CLS if present
                 emb = outputs.mean(dim=1).detach()
         return emb
 
 # Register this adapter for the HF-style aliases used by the repo
-for alias in ("vit", "dino","dinov3", "convnext", "ijepa", "vjepa"):
+for alias in ("vit", "dino","dinov3", "convnext", "ijepa", "vjepa", "vim"):
     register_adapter(alias, HFAdapter)

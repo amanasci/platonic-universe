@@ -61,6 +61,7 @@ There are two methods to run experiments:
 - **DINOv2**: Small, Base, Large, Giant
 - **ConvNeXtv2**: Nano, Tiny, Base, Large
 - **IJEPA**: Huge, Giant
+- **Vision Mamba (Vim)**: Tiny, Small
 - **AstroPT**: Astronomy-specific transformer (Small, Base, Large)
 - **Specformer**: Spectroscopy-specific model (Enable by uncommenting relevant lines in 'experiments.py')
 
