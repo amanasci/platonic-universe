@@ -28,9 +28,15 @@ class HFAdapter(ModelAdapter):
     def load(self) -> None:
         if self.alias == "vjepa":
             self.processor = AutoVideoProcessor.from_pretrained(self.model_name)
+            self.model = AutoModel.from_pretrained(self.model_name).to("cuda").eval()
+        elif self.alias == "vim":
+            # Vision Mamba models don't have a standard processor config
+            # Use ViT processor as fallback (same input requirements: 224x224)
+            self.processor = AutoImageProcessor.from_pretrained("google/vit-base-patch16-224")
+            self.model = AutoModel.from_pretrained(self.model_name, trust_remote_code=True).to("cuda").eval()
         else:
             self.processor = AutoImageProcessor.from_pretrained(self.model_name)
-        self.model = AutoModel.from_pretrained(self.model_name).to("cuda").eval()
+            self.model = AutoModel.from_pretrained(self.model_name).to("cuda").eval()
 
     def get_preprocessor(self, modes: Iterable[str]):
         # Return a callable compatible with datasets.Dataset.map

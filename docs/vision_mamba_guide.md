@@ -55,10 +55,11 @@ Vision Mamba uses the **CLS token** for embedding extraction, similar to DINO mo
 
 ### Preprocessing
 
-Vision Mamba uses the standard HuggingFace preprocessing pipeline:
-- Image processor: `AutoImageProcessor.from_pretrained(model_name)`
+Vision Mamba uses a ViT-based preprocessing pipeline:
+- Image processor: Uses ViT processor as fallback (`google/vit-base-patch16-224`)
 - Preprocessor: `PreprocessHF` (same as ViT, DINO, etc.)
 - Input image size: 224x224 (standard)
+- Note: Vision Mamba models don't include a standard processor config, so we use ViT's processor which has the same input requirements
 
 ### Architecture
 
@@ -66,6 +67,12 @@ The adapter implementation:
 ```python
 # In src/pu/models/hf.py
 class HFAdapter(ModelAdapter):
+    def load(self):
+        if self.alias == "vim":
+            # Use ViT processor as fallback
+            self.processor = AutoImageProcessor.from_pretrained("google/vit-base-patch16-224")
+            self.model = AutoModel.from_pretrained(self.model_name, trust_remote_code=True).to("cuda").eval()
+    
     def embed_for_mode(self, batch, mode):
         inputs = batch[f"{mode}"].to("cuda")
         with torch.no_grad():
@@ -132,6 +139,14 @@ Models will be automatically downloaded from HuggingFace Hub on first use and ca
 
 ## Troubleshooting
 
+### Image Processor Error
+
+If you encounter an error like `Can't load image processor for 'hustvl/vim-tiny-midclstok'`:
+- **This is expected and handled automatically**
+- Vision Mamba models don't include a standard processor configuration
+- The adapter automatically uses a ViT processor as fallback (same input requirements)
+- No action needed - the model will work correctly
+
 ### Model Download Issues
 
 If you encounter download issues:
@@ -151,7 +166,7 @@ platonic_universe run --model vim --mode jwst --batch-size 16
 
 ### Trust Remote Code
 
-Vision Mamba models may require `trust_remote_code=True`. This is handled automatically by the adapter.
+Vision Mamba models require `trust_remote_code=True`. This is handled automatically by the adapter.
 
 ## References
 
