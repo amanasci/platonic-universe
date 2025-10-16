@@ -36,6 +36,25 @@ Our results (below) show that **larger models exhibit more similar representatio
    uv pip install .
    ```
 
+### Optional: Installing SAM2 Support
+
+To use SAM2 (Segment Anything Model 2) image encoder, install SAM2 separately:
+
+```bash
+pip install git+https://github.com/facebookresearch/sam2.git
+```
+
+Or if you prefer to build without CUDA extensions:
+
+```bash
+SAM2_BUILD_CUDA=0 pip install git+https://github.com/facebookresearch/sam2.git
+```
+
+Once SAM2 is installed, you can use it with:
+```bash
+platonic_universe run --model sam2 --mode jwst
+```
+
 ### Quick Start: Running Experiments
 
 There are two methods to run experiments:
@@ -62,6 +81,7 @@ There are two methods to run experiments:
 - **ConvNeXtv2**: Nano, Tiny, Base, Large
 - **IJEPA**: Huge, Giant
 - **AstroPT**: Astronomy-specific transformer (Small, Base, Large)
+- **SAM2**: Segment Anything Model 2 (Tiny, Small, Base-Plus, Large) - requires separate installation
 - **Specformer**: Spectroscopy-specific model (Enable by uncommenting relevant lines in 'experiments.py')
 
 **Astronomical Datasets:**
