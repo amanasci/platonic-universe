@@ -68,7 +68,7 @@ class SAM2Adapter(ModelAdapter):
 
             # Pool spatially to get a fixed-size embedding per image
             # Average pool over spatial dimensions (H, W)
-            emb = emb.mean(dim=(2, 3)).detach()
+            emb = emb.mean(dim=0).detach()
 
         return emb
 
