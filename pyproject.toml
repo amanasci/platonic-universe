@@ -16,6 +16,8 @@ dependencies = [
     "scikit-learn>=1.7.1",
     "torch>=2.8.0",
     "transformers>=4.55.0",
+    "sam2 @ git+https://github.com/facebookresearch/sam2.git"
+
 ]
 
 [build-system]  
@@ -37,3 +39,6 @@ transformers = { git = "https://github.com/huggingface/transformers.git" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pu"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
