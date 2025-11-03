@@ -54,23 +54,48 @@ class SAM2Adapter(ModelAdapter):
         inputs = batch[f"{mode}"].to("cuda")
 
         with torch.no_grad():
-            # Forward through the image encoder
-            backbone_out = self.model.forward_image(inputs)
-            _, vision_feats, _, _ = self.model._prepare_backbone_features(backbone_out)
+		# Case 1: user passed a list of numpy arrays (predictor expects that)
+            if isinstance(inputs, list):
+                # let the high-level predictor handle batching and transforms consistency
+                # predictor.set_image_batch expects a List[np.ndarray]
+                self.predictor.set_image_batch(inputs)
+                emb = self.predictor.get_image_embedding()
+                # get_image_embedding returns a list-like structure for batch case in predictor:
+                # In predictor.set_image_batch it stores features as {"image_embed": feats[-1], ...}
+                # and feats[-1] has shape (B, C, H_emb, W_emb)
+                pooled = emb.mean(dim=(2, 3))
+                return pooled
 
-            # Add no_mem_embed if needed (following SAM2ImagePredictor logic)
-            if self.model.directly_add_no_mem_embed:
-                vision_feats[-1] = vision_feats[-1] + self.model.no_mem_embed
+            # Case 2: inputs is a tensor (Bx3xHxW)
+            if isinstance(inputs, torch.Tensor):
+                img_batch = inputs.to("cuda")
+                # forward through the model to get backbone outputs
+                backbone_out = self.model.forward_image(img_batch)
+                _, vision_feats, _, feat_sizes = self.model._prepare_backbone_features(
+                    backbone_out
+                )
 
-            # Use the highest resolution features (last in the list)
-            # These are the image embeddings from the encoder
-            emb = vision_feats[-1]
+                # Add no_mem_embed, which predictor does when directly_add_no_mem_embed is True
+                if getattr(self.model, "directly_add_no_mem_embed", False):
+                    vision_feats[-1] = vision_feats[-1] + self.model.no_mem_embed
 
-            # Pool spatially to get a fixed-size embedding per image
-            # Average pool over spatial dimensions (H, W)
-            emb = emb.mean(dim=0).detach()
+                batch_size = img_batch.shape[0]
+                # same spatial sizes used in SAM2ImagePredictor
+                bb_feat_sizes = [(256, 256), (128, 128), (64, 64)]
+                feats = [
+                    feat.permute(1, 2, 0).view(batch_size, -1, *feat_size)
+                    for feat, feat_size in zip(vision_feats[::-1], bb_feat_sizes[::-1])
+                ][::-1]
+                # feats[-1] is the image embedding; feats[:-1] are high_res_feats
+                image_embed = feats[-1].detach()
+                pooled = image_embed.mean(dim=(2, 3))  # (B, C)
+                return pooled
 
-        return emb
+            raise TypeError(
+                "Unsupported input type for SAM2Adapter.embed_for_mode: "
+                f"{type(inputs)}. Expected torch.Tensor (Bx3xHxW) or List[np.ndarray]."
+            )
+
 
 
 # Register the adapter only if SAM2 is available
