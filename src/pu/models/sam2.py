@@ -98,6 +98,7 @@ class SAM2Adapter(ModelAdapter):
 
 
 
+
 # Register the adapter only if SAM2 is available
 if SAM2_AVAILABLE:
     register_adapter("sam2", SAM2Adapter)
