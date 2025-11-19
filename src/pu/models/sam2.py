@@ -88,15 +88,13 @@ class SAM2Adapter(ModelAdapter):
                 ][::-1]
                 # feats[-1] is the image embedding; feats[:-1] are high_res_feats
                 image_embed = feats[-1].detach()
-                pooled = image_embed.mean(dim=(2, 3))  # (B, C)
+                pooled = image_embed.amax(dim=(2, 3))  # (B, C)
                 return pooled
 
             raise TypeError(
                 "Unsupported input type for SAM2Adapter.embed_for_mode: "
                 f"{type(inputs)}. Expected torch.Tensor (Bx3xHxW) or List[np.ndarray]."
             )
-
-
 
 
 # Register the adapter only if SAM2 is available

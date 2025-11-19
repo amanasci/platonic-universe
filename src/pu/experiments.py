@@ -94,6 +94,9 @@ def run_experiment(model_alias, mode, output_dataset=None, batch_size=128, num_w
                 "facebook/sam2.1-hiera-base-plus",
                 "facebook/sam2.1-hiera-large",
             ],
+        "vit-mae": (
+            ["base", "large", "huge"],
+            [f"facebook/vit-mae-{s}" for s in ["base", "large", "huge"]],
         ),
     }
 
